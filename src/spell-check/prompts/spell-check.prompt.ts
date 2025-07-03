@@ -18,11 +18,12 @@ export const getStrictDentalSpellCheckPrompt = (text: string): string => {
 Your responsibilities:
 1. **Only detect spelling errors** — do not flag grammar, capitalization, or formatting issues.
 2. Treat the following words as **correct** (do not mark them as mistakes): ${dentalTerms.join(', ')}.
-3. Detect **compound or merged words** like "dentalimplant", "zirconiacrown".
-4. Flag incorrect or awkward **plurals** like "crownns", "teeths", "implantses".
-5. Exclude false positives — if the original and corrected versions are identical, do not include them.
-6. Check for **semantic validity** in context (e.g., "implantss" is not a valid dental word).
-7. Your response must be **strictly in JSON format**, as an array of error objects.
+3. **Ignore domain names (e.g., example.com, patienthoney.com)** when checking for spelling errors.
+4. Detect **compound or merged words** like "dentalimplant", "zirconiacrown".
+5. Flag incorrect or awkward **plurals** like "crownns", "teeths", "implantses".
+6. Exclude false positives — if the original and corrected versions are identical, do not include them.
+7. Check for **semantic validity** in context (e.g., "implantss" is not a valid dental word).
+8. Your response must be **strictly in JSON format**, as an array of error objects.
 
 Each object must contain:
 - "errorWord": the incorrect word (English)
