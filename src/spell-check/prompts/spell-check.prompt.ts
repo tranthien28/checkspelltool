@@ -1,3 +1,4 @@
+export const name = "Kiểm tra chính tả"
 export const dentalTerms = [
   "periodontal", "gingivitis", "periodontitis", "amalgam", "composite", "porcelain", "zirconia",
   "orthodontic", "aligners", "SureSmile", "DMD", "CBCT", "Primescan", "Kavo", "Digidoc", "Solea Laser",
@@ -13,39 +14,45 @@ export const dentalTerms = [
 ];
 
 export const getStrictDentalSpellCheckPrompt = (text: string): string => {
-  return `Act as an extremely strict English spell checker specialized in dental and medical content. Carefully analyze the provided text to detect **any spelling mistakes or invalid dental terminology**. Treat each line (separated by \n) as a distinct sentence for analysis.
+  const jsonStart = '```json\n';
+  const jsonEnd = '\n```';
 
-Your responsibilities:
-1. **Only detect spelling errors** — do not flag grammar, capitalization, or formatting issues.
-2. Treat the following words as **correct** (do not mark them as mistakes): ${dentalTerms.join(', ')}.
-3. **Ignore domain names (e.g., example.com, patienthoney.com)** when checking for spelling errors.
-4. Detect **compound or merged words** like "dentalimplant", "zirconiacrown".
-5. Flag incorrect or awkward **plurals** like "crownns", "teeths", "implantses".
-6. Exclude false positives — if the original and corrected versions are identical, do not include them.
-7. Check for **semantic validity** in context (e.g., "implantss" is not a valid dental word).
-8. Your response must be **strictly in JSON format**, as an array of error objects.
-
-Each object must contain:
-- "errorWord": the incorrect word (English)
-- "originalSentence": the full sentence where the error appears
-- "correctedSentence": your best spelling fix
-- "offset": starting index of the error in the full original input
-- "message": **a short description of the spelling issue, written in Vietnamese**
-
-If no errors are found, return an empty array \`[]\`.
-
-Now analyze the following text strictly for spelling mistakes only:
-
-${text}
-
-Example JSON output:
-[
-  {
-    "errorWord": "implantss",
-    "originalSentence": "We provide high-quality implantss for patients.",
-    "correctedSentence": "We provide high-quality implants for patients.",
-    "offset": 28,
-    "message": "Từ bị sai chính tả – dạng số nhiều không hợp lệ."
-  }
-]`;
+  let prompt = "**IMPORTANT: ONLY RETURN JSON. DO NOT INCLUDE ANY OTHER TEXT OR EXPLANATIONS.**\n\n" +
+               "You are an AI assistant that strictly checks **English spelling errors** in **dental and medical content**.\n\n" +
+               "Follow these instructions carefully:\n\n" +
+               "--- \n\n" +
+               "### 🔍 What to check:\n" +
+               "- Spelling mistakes **only** (do NOT check grammar, formatting, or capitalization)\n" +
+               "- Detect **merged or compound words** (e.g., \"dentalimplant\")\n" +
+               "- Detect **invalid plural forms** (e.g., \"implantss\", \"crownns\", \"teeths\")\n" +
+               "- Ignore domain names like \"example.com\" or \"patienthoney.com\"\n" +
+               "- Treat the following dental terms as correct:\n" +
+               "  ✅ " + dentalTerms.join(', ') + "\n\n" +
+               "--- \n\n" +
+               "### 📤 Output Format (IMPORTANT - STRICTLY FOLLOW THIS):\n" +
+               "Return the result **ONLY** as a valid JSON array, enclosed within a markdown code block (" + jsonStart + "...\n" + jsonEnd + "). **DO NOT** include any explanations, extra text, or conversational filler outside of this JSON block. If there are **no spelling mistakes**, return exactly: " + jsonStart + "[{\n\"errorWord\": \"\",\n\"originalSentence\": \"\",\n\"correctedSentence\": \"\",\n\"offset\": 0,\n\"message\": \"Không phát hiện lỗi chính tả.\"\n}]" + jsonEnd + "\n\n" +
+               "Each object in the array must include:\n\n" +
+               "- \"errorWord\": the incorrect word (English)\n" +
+               "- \"originalSentence\": full sentence where the error appears\n" +
+               "- \"correctedSentence\": the sentence after correcting the spelling\n" +
+               "- \"offset\": character index where the error starts (in the full input)\n" +
+               "- \"message\": short explanation in **Vietnamese** why it’s incorrect\n\n" +
+               "--- \n\n" +
+               "### ✅ Example output (STRICTLY FOLLOW THIS FORMAT):\n\n" +
+               jsonStart + "\n" +
+               "[\n" +
+               "  {\n" +
+               "    \"errorWord\": \"implantss\",\n" +
+               "    \"originalSentence\": \"We provide high-quality implantss for patients.\",\n" +
+               "    \"correctedSentence\": \"We provide high-quality implants for patients.\",\n" +
+               "    \"offset\": 28,\n" +
+               "    \"message\": \"Từ bị sai chính tả – dạng số nhiều không hợp lệ.\"\n" +
+               "  }\n" +
+               "]\n" +
+               jsonEnd + "\n\n" +
+               "--- \n\n" +
+               "Now, analyze the following text line by line (each line is a sentence). Be strict.\n\n" +
+               "--- \n\n" +
+               text;
+  return prompt;
 };

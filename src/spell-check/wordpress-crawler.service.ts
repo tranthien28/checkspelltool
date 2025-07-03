@@ -4,10 +4,14 @@ import { firstValueFrom } from 'rxjs';
 import * as cheerio from 'cheerio';
 import { EventsGateway } from '../events/events.gateway';
 import { SeoMeta } from './dto/spell-check-response.dto';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 @Injectable()
 export class WordPressCrawlerService {
   private readonly logger = new Logger(WordPressCrawlerService.name);
+  private readonly wordpressApiEndpoint = process.env.WORDPRESS_API_ENDPOINT || '/wp-json/site-export/v1/full';
 
   constructor(
     private readonly httpService: HttpService,
@@ -48,9 +52,21 @@ export class WordPressCrawlerService {
     return brokenLinks;
   }
 
+  checkLinksWithTextNoHref(linkObjects: any[], baseUrl: string): string[] {
+    const brokenLinks: string[] = [];
+    if (Array.isArray(linkObjects)) {
+      linkObjects.forEach(linkObj => {
+        if (linkObj.text && !linkObj.href) {
+          brokenLinks.push(`Link with text but no href: ${linkObj.text} at ${baseUrl}`);
+        }
+      });
+    }
+    return brokenLinks;
+  }
+
   async crawlAndExtractContent(baseUrl: string): Promise<{ url: string; textContent: string; seoMeta: SeoMeta; allLinks: string[]; permalink?: string; title?: string; slug?: string }[]> {
     const extractedContents: { url: string; textContent: string; seoMeta: SeoMeta; allLinks: string[]; permalink?: string; title?: string; slug?: string }[] = [];
-    const newApiUrl = `${baseUrl}/wp-json/site-export/v1/full`;
+    const newApiUrl = `${baseUrl}${this.wordpressApiEndpoint}`;
     this.logger.log(`Fetching content from custom API: ${newApiUrl}`);
     this.eventsGateway.emitScanProgress(`Fetching content from custom API: ${newApiUrl}`);
 
@@ -60,27 +76,29 @@ export class WordPressCrawlerService {
 
       if (data.header) {
         const headerLinks = this.extractLinksFromJson(data.header.links);
+        const headerBrokenLinks = this.checkLinksWithTextNoHref(data.header.links, `${baseUrl}/header`);
         extractedContents.push({
           url: `${baseUrl}/header`,
           textContent: data.header.text,
           seoMeta: {},
-          allLinks: headerLinks,
+          allLinks: [...headerLinks, ...headerBrokenLinks],
           permalink: `${baseUrl}/header`,
         });
       }
       if (data.footer) {
         const footerLinks = this.extractLinksFromJson(data.footer.links);
+        const footerBrokenLinks = this.checkLinksWithTextNoHref(data.footer.links, `${baseUrl}/footer`);
         extractedContents.push({
           url: `${baseUrl}/footer`,
           textContent: data.footer.text,
           seoMeta: {},
-          allLinks: footerLinks,
+          allLinks: [...footerLinks, ...footerBrokenLinks],
           permalink: `${baseUrl}/footer`,
         });
       }
 
       if (data.pages && Array.isArray(data.pages)) {
-        for (const page of data.pages) {
+        for (const page of data.pages) { // Revert to processing all pages
           const pageSlug = (page.slug || page.SLUG || '').replace(/^\/|\/$/g, '');
           const pagePermalink = page.permalink || page.PERMALINK || `${baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl}/${pageSlug}`;
           this.logger.log(`Processing page: ${pagePermalink}`);
@@ -99,9 +117,10 @@ export class WordPressCrawlerService {
           };
 
           const pageLinks = this.extractLinksFromJson(page.links);
+          const pageBrokenLinksWithTextNoHref = this.checkLinksWithTextNoHref(page.links, pagePermalink);
           const pageTitle = page.title || page.TITLE; // Extract title
 
-          extractedContents.push({ url: pagePermalink, textContent: textContentForSpellCheck, seoMeta: seoMeta, allLinks: pageLinks, permalink: pagePermalink, title: pageTitle, slug: pageSlug });
+          extractedContents.push({ url: pagePermalink, textContent: textContentForSpellCheck, seoMeta: seoMeta, allLinks: [...pageLinks, ...pageBrokenLinksWithTextNoHref], permalink: pagePermalink, title: pageTitle, slug: pageSlug });
         }
       }
     } catch (apiError) {

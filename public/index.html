@@ -136,15 +136,16 @@
                 <div id="modelSelector">
                     <h3>Chọn model:</h3>
                     <label><input type="radio" name="model" value="google/gemini-2.5-pro">google/gemini-2.5-pro</label><br>
+                    
                     <label><input type="radio" name="model" value="openai/gpt-4o" checked>openai/gpt-4o</label><br>
                 </div>
                 <div id="checkTypeSelector">
                     <h3>Chọn mục kiểm tra:</h3>
                     <label><input type="checkbox" name="checkType" value="spellCheck" checked> Kiểm tra Chính tả</label><br>
                     <label><input type="checkbox" name="checkType" value="brokenLinks"> Kiểm tra Đường dẫn lỗi</label><br>
-                    <label><input type="checkbox" name="checkType" value="seoIndex"> Kiểm tra SEO Index</label><br>
                 </div>
                 <button id="scanButton">Scan</button>
+                <div id="loadingIndicator" style="display: none; margin-top: 10px; color: #007bff;">Đang quét... Vui lòng chờ.</div>
             </div>
 
             <h2>Progress:</h2>
@@ -161,9 +162,22 @@
         const socket = io();
         const urlInput = document.getElementById('urlInput');
         const scanButton = document.getElementById('scanButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
         const progressDiv = document.getElementById('progress');
         const resultsDiv = document.getElementById('results');
         const historyListDiv = document.getElementById('historyList');
+
+        // Function to show loading state
+        function showLoading() {
+            scanButton.disabled = true;
+            loadingIndicator.style.display = 'block';
+        }
+
+        // Function to hide loading state
+        function hideLoading() {
+            scanButton.disabled = false;
+            loadingIndicator.style.display = 'none';
+        }
 
         // Function to load history from backend
         async function loadHistory() {
@@ -208,6 +222,11 @@
                     domainHeader.appendChild(deleteButton);
                     domainGroup.appendChild(domainHeader);
 
+                    domainHeader.after(deleteButton);
+                    console.log(deleteButton);
+                    console.log(domainHeader);
+                    domainGroup.appendChild(domainHeader);
+
                     const urlList = document.createElement('ul');
 
                     const urlsData = await (await fetch(`/logs/urls/${domain}`)).json();
@@ -232,11 +251,11 @@
                     // Sort urls by displayPath alphabetically
                     urls.sort((a, b) => a.displayPath.localeCompare(b.displayPath));
 
-                    for (const urlData of urls) {
+                    urls.forEach((urlData, index) => {
                         const listItem = document.createElement('li');
                         const link = document.createElement('a');
                         link.href = '#';
-                        link.textContent = `${urlData.displayPath}`;
+                        link.textContent = `${index + 1}. ${urlData.displayPath}`; // Display index
                         link.dataset.domain = domain;
                         link.dataset.filename = urlData.latestFilename; // Store the raw filename for fetching
                         link.addEventListener('click', (e) => {
@@ -249,7 +268,7 @@
                         });
                         listItem.appendChild(link);
                         urlList.appendChild(listItem);
-                    }
+                    });
                     domainGroup.appendChild(urlList);
                     historyListDiv.appendChild(domainGroup);
                 }
@@ -280,31 +299,43 @@
                 table.style.width = '100%';
                 table.style.borderCollapse = 'collapse';
                 table.style.marginTop = '20px';
-                table.innerHTML = `
+
+                let tableHeaderHtml = `
                     <thead>
                         <tr style="background-color: #007bff; color: white;">
-                            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">URL</th>
-                            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Chính tả</th>
-                            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Đường dẫn lỗi</th>
-                            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">SEO Index</th>
+                            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">URL</th>`;
+
+                logContent.checkTypes.forEach(checkType => {
+                    tableHeaderHtml += `<th style="padding: 8px; border: 1px solid #ddd; text-align: left;">${checkType}</th>`;
+                });
+
+                tableHeaderHtml += `
                         </tr>
                     </thead>
                     <tbody>
                     </tbody>
                 `;
+                table.innerHTML = tableHeaderHtml;
                 const tbody = table.querySelector('tbody');
 
                 const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td style="padding: 8px; border: 1px solid #ddd;"><a href="${logContent.permalink || logContent.url}" target="_blank">${logContent.url.replace(/_/g, ' ')}</a>${modelInfo}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${logContent.errors && logContent.errors.length > 0 ? 'Có lỗi' : 'Đạt ✔️'}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${logContent.brokenLinks && logContent.brokenLinks.length > 0 ? 'Có lỗi' : 'Đạt ✔️'}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${logContent.seoIssues && logContent.seoIssues.length > 0 ? 'Chưa index' : 'Đạt ✔️'}</td>
-                `;
+                let rowContentHtml = `
+                    <td style="padding: 8px; border: 1px solid #ddd;"><a href="${logContent.permalink || logContent.url}" target="_blank">${logContent.url.replace(/_/g, ' ')}</a>${modelInfo}</td>`;
+
+                logContent.checkTypes.forEach(checkType => {
+                    if (checkType === 'Kiểm tra chính tả') {
+                        rowContentHtml += `<td style="padding: 8px; border: 1px solid #ddd;">${logContent.errors && logContent.errors.length > 0 ? 'Có lỗi' : 'Đạt ✔️'}</td>`;
+                    } else if (checkType === 'Kiểm tra Đường dẫn lỗi') {
+                        rowContentHtml += `<td style="padding: 8px; border: 1px solid #ddd;">${logContent.brokenLinks && logContent.brokenLinks.length > 0 ? 'Có lỗi' : 'Đạt ✔️'}</td>`;
+                    } else if (checkType === 'Kiểm tra SEO Index') {
+                        rowContentHtml += `<td style="padding: 8px; border: 1px solid #ddd;">${logContent.seoIssues && logContent.seoIssues.length > 0 ? 'Chưa index' : 'Đạt ✔️'}</td>`;
+                    }
+                });
+                row.innerHTML = rowContentHtml;
                 resultsDiv.appendChild(table);
 
                 // Display detailed errors below the table if any
-                if (logContent.errors && logContent.errors.length > 0) {
+                if (logContent.checkTypes.includes('Kiểm tra chính tả') && logContent.errors && logContent.errors.length > 0) {
                     const spellErrorSection = document.createElement('div');
                     spellErrorSection.className = 'url-section';
                     spellErrorSection.innerHTML = `<h3>Chi tiết lỗi chính tả:</h3>`;
@@ -322,7 +353,7 @@
                     resultsDiv.appendChild(spellErrorSection);
                 }
 
-                if (logContent.brokenLinks && logContent.brokenLinks.length > 0) {
+                if (logContent.checkTypes.includes('Kiểm tra Đường dẫn lỗi') && logContent.brokenLinks && logContent.brokenLinks.length > 0) {
                     const brokenLinkSection = document.createElement('div');
                     brokenLinkSection.className = 'url-section';
                     brokenLinkSection.innerHTML = `<h3>Chi tiết đường dẫn lỗi:</h3><ul>`;
@@ -333,7 +364,7 @@
                     resultsDiv.appendChild(brokenLinkSection);
                 }
 
-                if (logContent.seoIssues && logContent.seoIssues.length > 0) {
+                if (logContent.checkTypes.includes('Kiểm tra SEO Index') && logContent.seoIssues && logContent.seoIssues.length > 0) {
                     const seoIssueSection = document.createElement('div');
                     seoIssueSection.className = 'url-section';
                     seoIssueSection.innerHTML = `<h3>Chi tiết vấn đề SEO:</h3><ul>`;
@@ -359,6 +390,7 @@
                 progressDiv.innerHTML = '';
                 resultsDiv.innerHTML = '';
                 progressDiv.innerHTML += `<p>Starting scan for: ${url} with model: ${selectedModel} and checks: ${selectedCheckTypes.join(', ')}</p>`;
+                showLoading(); // Show loading and disable button
                 fetch('/spell-check', {
                     method: 'POST',
                     headers: {
@@ -373,6 +405,7 @@
                 .catch(error => {
                     console.error('Error during fetch:', error);
                     progressDiv.innerHTML += `<p style="color: red;">Error: ${error.message}</p>`;
+                    hideLoading(); // Hide loading and enable button on error
                 });
             } else {
                 alert('Please enter a URL.');
@@ -387,6 +420,7 @@
         socket.on('scanComplete', (data) => {
             progressDiv.innerHTML += `<p>Scan complete!</p>`;
             progressDiv.scrollTop = progressDiv.scrollHeight;
+            hideLoading(); // Hide loading and enable button on scan complete
             // Reload history after a scan is complete
             loadHistory();
             // Display the results of the current scan
@@ -422,9 +456,19 @@
             }
         });
 
+        socket.on('scanStatus', (status) => {
+            if (status.isScanning) {
+                showLoading();
+            } else {
+                hideLoading();
+            }
+        });
+
         socket.on('connect', () => {
             console.log('Connected to WebSocket server');
             progressDiv.innerHTML += '<p>Connected to server.</p>';
+            // Request current scan status on connect
+            socket.emit('requestScanStatus');
             loadHistory(); // Load history on connect
         });
 

@@ -1,8 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { EventsGateway } from './events.gateway';
+import { SpellCheckModule } from '../spell-check/spell-check.module';
 
 @Module({
+  imports: [forwardRef(() => SpellCheckModule)],
   providers: [EventsGateway],
-  exports: [EventsGateway] // Export the gateway so it can be used in other modules
+  exports: [EventsGateway]
 })
 export class EventsModule {}

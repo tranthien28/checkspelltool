@@ -4,6 +4,7 @@ import { WordPressCrawlerService } from './wordpress-crawler.service';
 import { CheckSpellDto } from './dto/check-spell.dto';
 import { SpellCheckResponseDto, SpellError, SeoIssue } from './dto/spell-check-response.dto';
 import { EventsGateway } from '../events/events.gateway';
+import { name as spellCheckName } from './prompts/spell-check.prompt'; // Import the name from the prompt file
 
 @Controller('spell-check')
 export class SpellCheckController {
@@ -24,6 +25,11 @@ export class SpellCheckController {
 
   @Post()
   async checkSpelling(@Body() checkSpellDto: CheckSpellDto): Promise<SpellCheckResponseDto> {
+    if (this.spellCheckService.getIsScanning()) {
+      this.logger.warn('Scan already in progress. Ignoring new request.');
+      return { hasErrors: false, errors: [], seoIssues: [], brokenLinks: [], originalUrl: checkSpellDto.url };
+    }
+
     const { url, model, checkTypes } = checkSpellDto;
     const normalizedUrl = this.normalizeUrl(url);
     this.logger.log(`Received request to check spelling for URL: ${normalizedUrl} with model: ${model} and check types: ${checkTypes.join(', ')}`);
@@ -34,6 +40,12 @@ export class SpellCheckController {
     const allErrors: SpellError[] = [];
     const allSeoIssues: SeoIssue[] = [];
     const allBrokenLinks: string[] = [];
+    let promptForLogging: string = ''; // Declare promptForLogging here
+
+    const checkTypeNames: { [key: string]: string } = {
+      spellCheck: spellCheckName,
+      brokenLinks: 'Kiểm tra Đường dẫn lỗi',
+    };
 
     for (const content of extractedContents) {
       this.logger.log(`Checking content from: ${content.url}`);
@@ -43,21 +55,16 @@ export class SpellCheckController {
       let currentContentBrokenLinks: string[] = [];
 
       if (checkTypes.includes('spellCheck')) {
-        const errors = await this.spellCheckService.promptCheck(content.textContent, model);
+        const { errors, prompt: generatedPrompt } = await this.spellCheckService.promptCheck(content.textContent, model);
         if (errors.length > 0) {
           currentContentErrors.push(...errors.map(err => ({ ...err, url: content.url, model })));
         }
+        // Store the prompt for logging later
+        promptForLogging = generatedPrompt;
       }
 
       if (checkTypes.includes('brokenLinks')) {
         currentContentBrokenLinks = this.wordPressCrawlerService.checkBrokenLinks(content.allLinks, content.url);
-      }
-
-      if (checkTypes.includes('seoIndex')) {
-        const seoIssues = this.spellCheckService.analyzeSeo(content.seoMeta, content.url);
-        if (seoIssues.length > 0) {
-          currentContentSeoIssues.push(...seoIssues);
-        }
       }
 
       // Log errors for the current content
@@ -70,6 +77,8 @@ export class SpellCheckController {
         currentContentBrokenLinks,
         extractedContents.length,
         content.permalink || content.url, // Provide a fallback for permalink
+        promptForLogging, // Pass the prompt for logging
+        checkTypes.map(type => checkTypeNames[type]) // Pass the names of selected check types
       );
 
       allErrors.push(...currentContentErrors);
