@@ -1,487 +1,630 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WordPress Spell Checker</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            background-color: #f4f4f4;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .sidebar {
-            width: 250px;
-            background-color: #333;
-            color: white;
-            padding: 20px;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-        .sidebar h2 {
-            color: #007bff;
-            margin-top: 0;
-        }
-        .sidebar ul {
-            list-style: none;
-            padding: 0;
-        }
-        .sidebar ul li {
-            margin-bottom: 10px;
-        }
-        .sidebar ul li a {
-            color: white;
-            text-decoration: none;
-            display: block;
-            padding: 5px;
-            border-radius: 4px;
-        }
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
-            background-color: #0056b3;
-        }
-        .main-content {
-            flex-grow: 1;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        .container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-        input[type="text"] {
-            width: calc(100% - 100px);
-            padding: 10px;
-            margin-right: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #progress {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-        #results {
-            margin-top: 20px;
-        }
-        .url-section {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-        }
-        .error-item {
-            background-color: #ffe0e0;
-            border-left: 5px solid #ff0000;
-            padding: 8px;
-            margin-bottom: 5px;
-            border-radius: 3px;
-        }
-        .error-item strong {
-            color: #cc0000;
-        }
-        .domain-group {
-            margin-bottom: 15px;
-        }
-        .domain-group h4 {
-            margin-top: 0;
-            margin-bottom: 5px;
-            color: #ddd;
-            cursor: pointer; /* Make domain name clickable */
-        }
-        .domain-group h4:hover {
-            color: #fff;
-        }
-        .domain-group ul {
-            padding-left: 15px;
-            display: none; /* Hidden by default */
-        }
-        .domain-group.expanded ul {
-            display: block; /* Show when expanded */
-        }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background-color: #f4f4f4;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .sidebar {
+        width: 250px;
+        background-color: #333;
+        color: white;
+        padding: 20px;
+        overflow-y: auto;
+        flex-shrink: 0;
+      }
+      .sidebar h2 {
+        color: #007bff;
+        margin-top: 0;
+      }
+      .sidebar ul {
+        list-style: none;
+        padding: 0;
+      }
+      .sidebar ul li {
+        margin-bottom: 10px;
+      }
+      .sidebar ul li a {
+        color: white;
+        text-decoration: none;
+        display: block;
+        padding: 5px;
+        border-radius: 4px;
+      }
+      .sidebar ul li a:hover,
+      .sidebar ul li a.active {
+        background-color: #0056b3;
+      }
+      .main-content {
+        flex-grow: 1;
+        padding: 20px;
+        overflow-y: auto;
+      }
+      .container {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+      input[type='text'] {
+        width: calc(100% - 100px);
+        padding: 10px;
+        margin-right: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      button {
+        padding: 10px 15px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      #progress {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        max-height: 150px;
+        overflow-y: auto;
+      }
+      #results {
+        margin-top: 20px;
+      }
+      .url-section {
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+      }
+      .error-item {
+        background-color: #ffe0e0;
+        border-left: 5px solid #ff0000;
+        padding: 8px;
+        margin-bottom: 5px;
+        border-radius: 3px;
+      }
+      .error-item strong {
+        color: #cc0000;
+      }
+      .domain-group {
+        margin-bottom: 15px;
+      }
+      .domain-group h4 {
+        margin-top: 0;
+        margin-bottom: 5px;
+        color: #ddd;
+        cursor: pointer; /* Make domain name clickable */
+      }
+      .domain-group h4:hover {
+        color: #fff;
+      }
+      .domain-group ul {
+        padding-left: 15px;
+        display: none; /* Hidden by default */
+      }
+      .domain-group.expanded ul {
+        display: block; /* Show when expanded */
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="sidebar">
-        <h2>Scan History</h2>
-        <div id="historyList"></div>
+      <h2>Scan History</h2>
+      <div id="historyList"></div>
     </div>
 
     <div class="main-content">
-        <div class="container">
-            <h1>WordPress Spell Checker</h1>
-            <div>
-                <input type="text" id="urlInput" placeholder="Enter WordPress URL (e.g., https://example.com)">
-                <div id="modelSelector">
-                    <h3>Chọn model:</h3>
-                    <label><input type="radio" name="model" value="google/gemini-2.5-pro">google/gemini-2.5-pro</label><br>
-                    
-                    <label><input type="radio" name="model" value="openai/gpt-4o" checked>openai/gpt-4o</label><br>
-                </div>
-                <div id="checkTypeSelector">
-                    <h3>Chọn mục kiểm tra:</h3>
-                    <label><input type="checkbox" name="checkType" value="spellCheck" checked> Kiểm tra Chính tả</label><br>
-                    <label><input type="checkbox" name="checkType" value="brokenLinks"> Kiểm tra Đường dẫn lỗi</label><br>
-                </div>
-                <button id="scanButton">Scan</button>
-                <div id="loadingIndicator" style="display: none; margin-top: 10px; color: #007bff;">Đang quét... Vui lòng chờ.</div>
-            </div>
-
-            <h2>Progress:</h2>
-            <div id="progress"></div>
+      <div class="container">
+        <h1>WordPress Spell Checker</h1>
+        <div>
+          <input
+            type="text"
+            id="urlInput"
+            placeholder="Enter WordPress URL (e.g., https://example.com)"
+          />
+          <div id="modelSelector">
+            <h3>Chọn model:</h3>
+            <!-- <label><input type="radio" name="model" value="google/gemini-2.5-pro">google/gemini-2.5-pro</label><br> -->
+            <label
+              ><input
+                type="radio"
+                name="model"
+                value="google/gemini-2.5-flash"
+                checked
+              />google/gemini-2.5-flash</label
+            ><br />
+            <label
+              ><input
+                type="radio"
+                name="model"
+                value="openai/gpt-4o"
+              />openai/gpt-4o</label
+            ><br />
+          </div>
+          <div id="checkTypeSelector">
+            <h3>Chọn mục kiểm tra:</h3>
+            <label
+              ><input
+                type="checkbox"
+                name="checkType"
+                value="spellCheck"
+                checked
+              />
+              Kiểm tra Chính tả</label
+            ><br />
+            <label
+              ><input type="checkbox" name="checkType" value="brokenLinks" />
+              Kiểm tra Đường dẫn lỗi</label
+            ><br />
+            <label
+              ><input
+                type="checkbox"
+                name="checkType"
+                value="dataConsistency"
+              />
+              Kiểm tra tính nhất quán của dữ liệu</label
+            ><br />
+          </div>
+          <button id="scanButton">Scan</button>
+          <div
+            id="loadingIndicator"
+            style="display: none; margin-top: 10px; color: #007bff"
+          >
+            Đang quét... Vui lòng chờ.
+          </div>
         </div>
 
-        <div class="container">
-            <h2>Results:</h2>
-            <div id="results"></div>
-        </div>
+        <h2>Progress:</h2>
+        <div id="progress"></div>
+      </div>
+
+      <div class="container">
+        <h2>Results:</h2>
+        <div id="results"></div>
+      </div>
     </div>
 
     <script>
-        const socket = io();
-        const urlInput = document.getElementById('urlInput');
-        const scanButton = document.getElementById('scanButton');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const progressDiv = document.getElementById('progress');
-        const resultsDiv = document.getElementById('results');
-        const historyListDiv = document.getElementById('historyList');
+      const socket = io();
+      const urlInput = document.getElementById('urlInput');
+      const scanButton = document.getElementById('scanButton');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const progressDiv = document.getElementById('progress');
+      const resultsDiv = document.getElementById('results');
+      const historyListDiv = document.getElementById('historyList');
 
-        // Function to show loading state
-        function showLoading() {
-            scanButton.disabled = true;
-            loadingIndicator.style.display = 'block';
-        }
+      // Function to show loading state
+      function showLoading() {
+        scanButton.disabled = true;
+        urlInput.disabled = true; // Disable URL input while scanning
+        loadingIndicator.style.display = 'block';
+      }
 
-        // Function to hide loading state
-        function hideLoading() {
-            scanButton.disabled = false;
-            loadingIndicator.style.display = 'none';
-        }
+      // Function to hide loading state
+      function hideLoading() {
+        scanButton.disabled = false;
+        urlInput.disabled = false; // Re-enable URL input after scan completes
+        loadingIndicator.style.display = 'none';
+      }
 
-        // Function to load history from backend
-        async function loadHistory() {
-            historyListDiv.innerHTML = '';
-            try {
-                const domains = await (await fetch('/logs/domains')).json();
-                for (const domain of domains) {
-                    const domainGroup = document.createElement('div');
-                    domainGroup.className = 'domain-group';
-                    
-                    const domainHeader = document.createElement('h4');
-                    domainHeader.addEventListener('click', () => {
-                        domainGroup.classList.toggle('expanded');
-                    });
-                    
-                    const deleteButton = document.createElement('button');
-                    deleteButton.textContent = 'Xóa';
-                    deleteButton.style.marginLeft = '10px';
-                    deleteButton.style.backgroundColor = '#dc3545';
-                    deleteButton.style.padding = '5px 10px';
-                    deleteButton.style.fontSize = '0.8em';
-                    deleteButton.addEventListener('click', async (e) => {
-                        e.stopPropagation(); // Prevent domain header click from expanding/collapsing
-                        if (confirm(`Bạn có chắc chắn muốn xóa lịch sử quét của ${domain.replace(/_/g, '.')} không?`)) {
-                            try {
-                                const response = await fetch(`/logs/domain/${domain}`, {
-                                    method: 'DELETE',
-                                });
-                                if (response.ok) {
-                                    alert(`Đã xóa lịch sử quét của ${domain.replace(/_/g, '.')}.`);
-                                    loadHistory(); // Reload history
-                                    resultsDiv.innerHTML = ''; // Clear results display
-                                } else {
-                                    alert('Có lỗi xảy ra khi xóa lịch sử quét.');
-                                }
-                            } catch (error) {
-                                console.error('Error deleting domain history:', error);
-                                alert('Có lỗi xảy ra khi xóa lịch sử quét.');
-                            }
-                        }
-                    });
-                    domainHeader.appendChild(deleteButton);
-                    domainGroup.appendChild(domainHeader);
-
-                    domainHeader.after(deleteButton);
-                    console.log(deleteButton);
-                    console.log(domainHeader);
-                    domainGroup.appendChild(domainHeader);
-
-                    const urlList = document.createElement('ul');
-
-                    const urlsData = await (await fetch(`/logs/urls/${domain}`)).json();
-                    const totalPageCount = urlsData.totalPageCount;
-                    const latestModelFilename = urlsData.latestModelFilename;
-                    const urls = urlsData.urls;
-
-                    let modelInfo = '';
-                    if (latestModelFilename) {
-                        try {
-                            const logContent = await (await fetch(`/logs/content/${domain}/${encodeURIComponent(latestModelFilename)}`)).json();
-                            if (logContent && logContent.model) {
-                                modelInfo = ` (Model: ${logContent.model})`;
-                            }
-                        } catch (error) {
-                            console.error('Error fetching model info:', error);
-                        }
-                    }
-
-                    domainHeader.textContent = `${domain.replace(/_/g, '')} (${totalPageCount} trang)${modelInfo}`;
-
-                    // Sort urls by displayPath alphabetically
-                    urls.sort((a, b) => a.displayPath.localeCompare(b.displayPath));
-
-                    urls.forEach((urlData, index) => {
-                        const listItem = document.createElement('li');
-                        const link = document.createElement('a');
-                        link.href = '#';
-                        link.textContent = `${index + 1}. ${urlData.displayPath}`; // Display index
-                        link.dataset.domain = domain;
-                        link.dataset.filename = urlData.latestFilename; // Store the raw filename for fetching
-                        link.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            displayLogContent(domain, urlData.latestFilename);
-                            // Remove active class from all links
-                            document.querySelectorAll('.sidebar ul li a').forEach(a => a.classList.remove('active'));
-                            // Add active class to clicked link
-                            link.classList.add('active');
-                        });
-                        listItem.appendChild(link);
-                        urlList.appendChild(listItem);
-                    });
-                    domainGroup.appendChild(urlList);
-                    historyListDiv.appendChild(domainGroup);
-                }
-            } catch (error) {
-                console.error('Error loading history:', error);
-                historyListDiv.innerHTML = '<p style="color: red;">Error loading history.</p>';
+      // Function to load history from backend
+      async function loadHistory() {
+        historyListDiv.innerHTML = '';
+        try {
+          const domains = await (await fetch('/logs/domains')).json();
+          
+          // Group domains by base domain name to count scan instances
+          const domainGroups = {};
+          domains.forEach(domain => {
+            const baseDomain = domain.replace(/_\d+$/, ''); // Remove any trailing _N
+            if (!domainGroups[baseDomain]) {
+              domainGroups[baseDomain] = [];
             }
-        }
+            domainGroups[baseDomain].push(domain);
+          });
 
-        // Function to display log content
-        async function displayLogContent(domain, filename) {
-            resultsDiv.innerHTML = '';
-            try {
-                const encodedFilename = encodeURIComponent(filename);
-                const logContent = await (await fetch(`/logs/content/${domain}/${encodedFilename}`)).json();
+          // Sort domains within each group by scan number
+          for (const baseDomain in domainGroups) {
+            domainGroups[baseDomain].sort((a, b) => {
+              const aNum = parseInt(a.match(/_(\d+)$/)?.[1] || '0');
+              const bNum = parseInt(b.match(/_(\d+)$/)?.[1] || '0');
+              return bNum - aNum; // Sort in descending order (newest first)
+            });
+          }
 
-                if (!logContent) {
-                    resultsDiv.innerHTML = '<p>Không tìm thấy nội dung log cho URL này.</p>';
-                    return;
+          // Process each domain group
+          for (const baseDomain in domainGroups) {
+            for (const domain of domainGroups[baseDomain]) {
+              const domainGroup = document.createElement('div');
+              domainGroup.className = 'domain-group';
+
+              const domainHeader = document.createElement('h4');
+              domainHeader.addEventListener('click', () => {
+                domainGroup.classList.toggle('expanded');
+              });
+
+              const deleteButton = document.createElement('button');
+              deleteButton.textContent = 'Xóa';
+              deleteButton.style.marginLeft = '10px';
+              deleteButton.style.backgroundColor = '#dc3545';
+              deleteButton.style.padding = '5px 10px';
+              deleteButton.style.fontSize = '0.8em';
+              deleteButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm(`Bạn có chắc chắn muốn xóa lịch sử quét của ${domain.replace(/_/g, '.')} không?`)) {
+                  try {
+                    const response = await fetch(`/logs/domain/${domain}`, {
+                      method: 'DELETE',
+                    });
+                    if (response.ok) {
+                      alert(`Đã xóa lịch sử quét của ${domain.replace(/_/g, '.')}.`);
+                      loadHistory();
+                      resultsDiv.innerHTML = '';
+                    } else {
+                      alert('Có lỗi xảy ra khi xóa lịch sử quét.');
+                    }
+                  } catch (error) {
+                    console.error('Error deleting domain history:', error);
+                    alert('Có lỗi xảy ra khi xóa lịch sử quét.');
+                  }
                 }
+              });
 
-                let modelInfo = '';
-                if (logContent.model) {
+              domainHeader.appendChild(deleteButton);
+              domainGroup.appendChild(domainHeader);
+
+              const urlList = document.createElement('ul');
+
+              const urlsData = await (await fetch(`/logs/urls/${domain}`)).json();
+              const totalPageCount = urlsData.totalPageCount;
+              const latestModelFilename = urlsData.latestModelFilename;
+              const urls = urlsData.urls;
+
+              let modelInfo = '';
+              if (latestModelFilename) {
+                try {
+                  const logContent = await (await fetch(`/logs/content/${domain}/${encodeURIComponent(latestModelFilename)}`)).json();
+                  if (logContent && logContent.model) {
                     modelInfo = ` (Model: ${logContent.model})`;
+                  }
+                } catch (error) {
+                  console.error('Error fetching model info:', error);
                 }
+              }
 
-                const table = document.createElement('table');
-                table.style.width = '100%';
-                table.style.borderCollapse = 'collapse';
-                table.style.marginTop = '20px';
+              // Extract scan number from domain name
+              const scanNumber = domain.match(/_(\d+)$/)?.[1] || '';
+              const displayDomain = domain.replace(/_\d+$/, '').replace(/_/g, '');
+              const scanLabel = scanNumber ? ` (Lần ${scanNumber})` : '';
+              
+              domainHeader.textContent = `${displayDomain}${scanLabel} (${totalPageCount} trang)${modelInfo}`;
 
-                let tableHeaderHtml = `
+              // Sort urls by displayPath alphabetically
+              urls.sort((a, b) => a.displayPath.localeCompare(b.displayPath));
+
+              urls.forEach((urlData, index) => {
+                const listItem = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = `?domain=${domain}&log=${encodeURIComponent(urlData.latestFilename)}`;
+                link.textContent = `${index + 1}. ${urlData.displayPath}`;
+                link.dataset.domain = domain;
+                link.dataset.filename = urlData.latestFilename;
+                link.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  displayLogContent(domain, urlData.latestFilename);
+                  // Remove active class from all links
+                  document.querySelectorAll('.sidebar ul li a').forEach((a) => a.classList.remove('active'));
+                  // Add active class to clicked link
+                  link.classList.add('active');
+                });
+                listItem.appendChild(link);
+                urlList.appendChild(listItem);
+              });
+              domainGroup.appendChild(urlList);
+              historyListDiv.appendChild(domainGroup);
+            }
+          }
+
+          // Check URL parameters and load content if specified
+          const params = new URLSearchParams(window.location.search);
+          const urlDomain = params.get('domain');
+          const urlLog = params.get('log');
+          if (urlDomain && urlLog) {
+            displayLogContent(urlDomain, urlLog);
+            // Find and highlight the corresponding link
+            const link = document.querySelector(`a[data-domain="${urlDomain}"][data-filename="${urlLog}"]`);
+            if (link) {
+              link.classList.add('active');
+              // Expand the domain group
+              link.closest('.domain-group').classList.add('expanded');
+            }
+          }
+
+        } catch (error) {
+          console.error('Error loading history:', error);
+          historyListDiv.innerHTML = '<p style="color: red;">Error loading history.</p>';
+        }
+      }
+
+      // Function to display log content
+      async function displayLogContent(domain, filename) {
+        resultsDiv.innerHTML = '';
+        try {
+          // Update URL with log info without reloading page
+          const params = new URLSearchParams(window.location.search);
+          params.set('domain', domain);
+          params.set('log', filename);
+          window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+
+          const encodedFilename = encodeURIComponent(filename);
+          const logContent = await (await fetch(`/logs/content/${domain}/${encodedFilename}`)).json();
+
+          if (!logContent) {
+            resultsDiv.innerHTML =
+              '<p>Không tìm thấy nội dung log cho URL này.</p>';
+            return;
+          }
+
+          let modelInfo = '';
+          if (logContent.model) {
+            modelInfo = ` (Model: ${logContent.model})`;
+          }
+
+          const table = document.createElement('table');
+          table.style.width = '100%';
+          table.style.borderCollapse = 'collapse';
+          table.style.marginTop = '20px';
+
+          let tableHeaderHtml = `
                     <thead>
                         <tr style="background-color: #007bff; color: white;">
                             <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">URL</th>`;
 
-                logContent.checkTypes.forEach(checkType => {
-                    tableHeaderHtml += `<th style="padding: 8px; border: 1px solid #ddd; text-align: left;">${checkType}</th>`;
-                });
+          logContent.checkTypes.forEach((checkType) => {
+            tableHeaderHtml += `<th style="padding: 8px; border: 1px solid #ddd; text-align: left;">${checkType}</th>`;
+          });
 
-                tableHeaderHtml += `
+          tableHeaderHtml += `
                         </tr>
                     </thead>
                     <tbody>
                     </tbody>
                 `;
-                table.innerHTML = tableHeaderHtml;
-                const tbody = table.querySelector('tbody');
+          table.innerHTML = tableHeaderHtml;
+          const tbody = table.querySelector('tbody');
 
-                const row = tbody.insertRow();
-                let rowContentHtml = `
+          const row = tbody.insertRow();
+          let rowContentHtml = `
                     <td style="padding: 8px; border: 1px solid #ddd;"><a href="${logContent.permalink || logContent.url}" target="_blank">${logContent.url.replace(/_/g, ' ')}</a>${modelInfo}</td>`;
 
-                logContent.checkTypes.forEach(checkType => {
-                    if (checkType === 'Kiểm tra chính tả') {
-                        rowContentHtml += `<td style="padding: 8px; border: 1px solid #ddd;">${logContent.errors && logContent.errors.length > 0 ? 'Có lỗi' : 'Đạt ✔️'}</td>`;
-                    } else if (checkType === 'Kiểm tra Đường dẫn lỗi') {
-                        rowContentHtml += `<td style="padding: 8px; border: 1px solid #ddd;">${logContent.brokenLinks && logContent.brokenLinks.length > 0 ? 'Có lỗi' : 'Đạt ✔️'}</td>`;
-                    } else if (checkType === 'Kiểm tra SEO Index') {
-                        rowContentHtml += `<td style="padding: 8px; border: 1px solid #ddd;">${logContent.seoIssues && logContent.seoIssues.length > 0 ? 'Chưa index' : 'Đạt ✔️'}</td>`;
-                    }
-                });
-                row.innerHTML = rowContentHtml;
-                resultsDiv.appendChild(table);
+          logContent.checkTypes.forEach((checkType) => {
+            if (checkType === 'Kiểm tra chính tả') {
+              rowContentHtml += `<td style="padding: 8px; border: 1px solid #ddd;">${logContent.errors && logContent.errors.length > 0 ? 'Có lỗi' : 'Đạt ✔️'}</td>`;
+            } else if (checkType === 'Kiểm tra Đường dẫn lỗi') {
+              rowContentHtml += `<td style="padding: 8px; border: 1px solid #ddd;">${logContent.brokenLinks && logContent.brokenLinks.length > 0 ? 'Có lỗi' : 'Đạt ✔️'}</td>`;
+            } else if (checkType === 'Kiểm tra SEO Index') {
+              rowContentHtml += `<td style="padding: 8px; border: 1px solid #ddd;">${logContent.seoIssues && logContent.seoIssues.length > 0 ? 'Chưa index' : 'Đạt ✔️'}</td>`;
+            } else if (checkType === 'Kiểm tra tính nhất quán của dữ liệu') {
+              rowContentHtml += `<td style="padding: 8px; border: 1px solid #ddd;">${logContent.consistencyIssues && logContent.consistencyIssues.length > 0 ? 'Có lỗi' : 'Đạt ✔️'}</td>`;
+            }
+          });
+          row.innerHTML = rowContentHtml;
+          resultsDiv.appendChild(table);
 
-                // Display detailed errors below the table if any
-                if (logContent.checkTypes.includes('Kiểm tra chính tả') && logContent.errors && logContent.errors.length > 0) {
-                    const spellErrorSection = document.createElement('div');
-                    spellErrorSection.className = 'url-section';
-                    spellErrorSection.innerHTML = `<h3>Chi tiết lỗi chính tả:</h3>`;
-                    logContent.errors.forEach(error => {
-                        const errorItem = document.createElement('div');
-                        errorItem.className = 'error-item';
-                        errorItem.innerHTML = `
+          // Display detailed errors below the table if any
+          if (
+            logContent.checkTypes.includes('Kiểm tra chính tả') &&
+            logContent.errors &&
+            logContent.errors.length > 0
+          ) {
+            const spellErrorSection = document.createElement('div');
+            spellErrorSection.className = 'url-section';
+            spellErrorSection.innerHTML = `<h3>Chi tiết lỗi chính tả:</h3>`;
+            logContent.errors.forEach((error) => {
+              const errorItem = document.createElement('div');
+              errorItem.className = 'error-item';
+              errorItem.innerHTML = `
                             <p><strong>Lỗi:</strong> ${error.errorWord}</p>
                             <p><strong>Câu gốc:</strong> ${error.originalSentence}</p>
                             <p><strong>Gợi ý sửa:</strong> ${error.correctedSentence}</p>
                             <p><strong>Thông báo:</strong> ${error.message}</p>
                         `;
-                        spellErrorSection.appendChild(errorItem);
-                    });
-                    resultsDiv.appendChild(spellErrorSection);
-                }
+              spellErrorSection.appendChild(errorItem);
+            });
+            resultsDiv.appendChild(spellErrorSection);
+          }
 
-                if (logContent.checkTypes.includes('Kiểm tra Đường dẫn lỗi') && logContent.brokenLinks && logContent.brokenLinks.length > 0) {
-                    const brokenLinkSection = document.createElement('div');
-                    brokenLinkSection.className = 'url-section';
-                    brokenLinkSection.innerHTML = `<h3>Chi tiết đường dẫn lỗi:</h3><ul>`;
-                    logContent.brokenLinks.forEach(link => {
-                        brokenLinkSection.innerHTML += `<li>${link}</li>`;
-                    });
-                    brokenLinkSection.innerHTML += `</ul>`;
-                    resultsDiv.appendChild(brokenLinkSection);
-                }
+          if (
+            logContent.checkTypes.includes('Kiểm tra Đường dẫn lỗi') &&
+            logContent.brokenLinks &&
+            logContent.brokenLinks.length > 0
+          ) {
+            const brokenLinkSection = document.createElement('div');
+            brokenLinkSection.className = 'url-section';
+            brokenLinkSection.innerHTML = `<h3>Chi tiết đường dẫn lỗi:</h3><ul>`;
+            logContent.brokenLinks.forEach((link) => {
+              brokenLinkSection.innerHTML += `<li>${link}</li>`;
+            });
+            brokenLinkSection.innerHTML += `</ul>`;
+            resultsDiv.appendChild(brokenLinkSection);
+          }
 
-                if (logContent.checkTypes.includes('Kiểm tra SEO Index') && logContent.seoIssues && logContent.seoIssues.length > 0) {
-                    const seoIssueSection = document.createElement('div');
-                    seoIssueSection.className = 'url-section';
-                    seoIssueSection.innerHTML = `<h3>Chi tiết vấn đề SEO:</h3><ul>`;
-                    logContent.seoIssues.forEach(issue => {
-                        seoIssueSection.innerHTML += `<li>${issue.message} (URL: ${issue.url})</li>`;
-                    });
-                    seoIssueSection.innerHTML += `</ul>`;
-                    resultsDiv.appendChild(seoIssueSection);
-                }
+          if (
+            logContent.checkTypes.includes('Kiểm tra SEO Index') &&
+            logContent.seoIssues &&
+            logContent.seoIssues.length > 0
+          ) {
+            const seoIssueSection = document.createElement('div');
+            seoIssueSection.className = 'url-section';
+            seoIssueSection.innerHTML = `<h3>Chi tiết vấn đề SEO:</h3><ul>`;
+            logContent.seoIssues.forEach((issue) => {
+              seoIssueSection.innerHTML += `<li>${issue.message} (URL: ${issue.url})</li>`;
+            });
+            seoIssueSection.innerHTML += `</ul>`;
+            resultsDiv.appendChild(seoIssueSection);
+          }
 
-            } catch (error) {
-                console.error('Error displaying log content:', error);
-                resultsDiv.innerHTML = '<p style="color: red;">Error loading log content.</p>';
-            }
+          if (
+            logContent.checkTypes.includes(
+              'Kiểm tra tính nhất quán của dữ liệu',
+            ) &&
+            logContent.consistencyIssues &&
+            logContent.consistencyIssues.length > 0
+          ) {
+            const consistencyIssueSection = document.createElement('div');
+            consistencyIssueSection.className = 'url-section';
+            consistencyIssueSection.innerHTML = `<h3>Chi tiết vấn đề về tính nhất quán:</h3><ul>`;
+            logContent.consistencyIssues.forEach((issue) => {
+              consistencyIssueSection.innerHTML += `<li>${issue.message} (URL: ${issue.url})</li>`;
+            });
+            consistencyIssueSection.innerHTML += `</ul>`;
+            resultsDiv.appendChild(consistencyIssueSection);
+          }
+        } catch (error) {
+          console.error('Error displaying log content:', error);
+          resultsDiv.innerHTML =
+            '<p style="color: red;">Error loading log content.</p>';
         }
+      }
 
-        scanButton.addEventListener('click', () => {
-            const url = urlInput.value;
-            const selectedModel = document.querySelector('#modelSelector input[name="model"]:checked').value;
-            const selectedCheckTypes = Array.from(document.querySelectorAll('#checkTypeSelector input[name="checkType"]:checked')).map(checkbox => checkbox.value);
+      scanButton.addEventListener('click', () => {
+        const url = urlInput.value;
+        const selectedModel = document.querySelector('#modelSelector input[name="model"]:checked').value;
+        const selectedCheckTypes = Array.from(document.querySelectorAll('#checkTypeSelector input[name="checkType"]:checked')).map(checkbox => checkbox.value);
 
-            if (url && selectedModel && selectedCheckTypes.length > 0) {
-                progressDiv.innerHTML = '';
-                resultsDiv.innerHTML = '';
-                progressDiv.innerHTML += `<p>Starting scan for: ${url} with model: ${selectedModel} and checks: ${selectedCheckTypes.join(', ')}</p>`;
-                showLoading(); // Show loading and disable button
-                fetch('/spell-check', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ url: url, model: selectedModel, checkTypes: selectedCheckTypes }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('HTTP request finished, waiting for WebSocket results...', data);
-                })
-                .catch(error => {
-                    console.error('Error during fetch:', error);
-                    progressDiv.innerHTML += `<p style="color: red;">Error: ${error.message}</p>`;
-                    hideLoading(); // Hide loading and enable button on error
-                });
-            } else {
-                alert('Please enter a URL.');
+        if (url && selectedModel && selectedCheckTypes.length > 0) {
+          progressDiv.innerHTML = '';
+          resultsDiv.innerHTML = '';
+          progressDiv.innerHTML += `<p>Starting scan for: ${url} with model: ${selectedModel} and checks: ${selectedCheckTypes.join(', ')}</p>`;
+          showLoading(); // Show loading and disable button & input
+          fetch('/spell-check', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              url: url,
+              model: selectedModel,
+              checkTypes: selectedCheckTypes,
+              isRescan: true // Add flag to indicate this might be a rescan
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log(
+                'HTTP request finished, waiting for WebSocket results...',
+                data,
+              );
+            })
+            .catch((error) => {
+              console.error('Error during fetch:', error);
+              progressDiv.innerHTML += `<p style="color: red;">Error: ${error.message}</p>`;
+              hideLoading(); // Hide loading and enable button on error
+            });
+        } else {
+          alert('Please enter a URL.');
+        }
+      });
+
+      socket.on('scanProgress', (message) => {
+        progressDiv.innerHTML += `<p>${message}</p>`;
+        progressDiv.scrollTop = progressDiv.scrollHeight; // Auto-scroll to bottom
+      });
+
+      socket.on('scanComplete', (data) => {
+        progressDiv.innerHTML += `<p>Scan complete!</p>`;
+        progressDiv.scrollTop = progressDiv.scrollHeight;
+        hideLoading(); // Hide loading and enable button on scan complete
+        alert('Đã hoàn thành'); // Show completion alert
+        // Reload history after a scan is complete
+        loadHistory();
+        // Display the results of the current scan
+        if (data.hasErrors) {
+          const errorsByUrl = {};
+          data.errors.forEach((error) => {
+            if (!errorsByUrl[error.url]) {
+              errorsByUrl[error.url] = [];
             }
-        });
+            errorsByUrl[error.url].push(error);
+          });
 
-        socket.on('scanProgress', (message) => {
-            progressDiv.innerHTML += `<p>${message}</p>`;
-            progressDiv.scrollTop = progressDiv.scrollHeight; // Auto-scroll to bottom
-        });
+          for (const url in errorsByUrl) {
+            const urlSection = document.createElement('div');
+            urlSection.className = 'url-section';
+            urlSection.innerHTML = `<h3>Errors for: <a href="${url}" target="_blank">${url}</a></h3>`;
 
-        socket.on('scanComplete', (data) => {
-            progressDiv.innerHTML += `<p>Scan complete!</p>`;
-            progressDiv.scrollTop = progressDiv.scrollHeight;
-            hideLoading(); // Hide loading and enable button on scan complete
-            // Reload history after a scan is complete
-            loadHistory();
-            // Display the results of the current scan
-            if (data.hasErrors) {
-                const errorsByUrl = {};
-                data.errors.forEach(error => {
-                    if (!errorsByUrl[error.url]) {
-                        errorsByUrl[error.url] = [];
-                    }
-                    errorsByUrl[error.url].push(error);
-                });
-
-                for (const url in errorsByUrl) {
-                    const urlSection = document.createElement('div');
-                    urlSection.className = 'url-section';
-                    urlSection.innerHTML = `<h3>Errors for: <a href="${url}" target="_blank">${url}</a></h3>`;
-                    
-                    errorsByUrl[url].forEach(error => {
-                        const errorItem = document.createElement('div');
-                        errorItem.className = 'error-item';
-                        errorItem.innerHTML = `
+            errorsByUrl[url].forEach((error) => {
+              const errorItem = document.createElement('div');
+              errorItem.className = 'error-item';
+              errorItem.innerHTML = `
                             <p><strong>Lỗi:</strong> ${error.errorWord}</p>
                             <p><strong>Câu gốc:</strong> ${error.originalSentence}</p>
                             <p><strong>Gợi ý sửa:</strong> ${error.correctedSentence}</p>
                             <p><strong>Thông báo:</strong> ${error.message}</p>
                         `;
-                        urlSection.appendChild(errorItem);
-                    });
-                    resultsDiv.appendChild(urlSection);
-                }
-            } else {
-                resultsDiv.innerHTML = '<p>No spelling errors found.</p>';
-            }
-        });
+              urlSection.appendChild(errorItem);
+            });
+            resultsDiv.appendChild(urlSection);
+          }
+        } else {
+          resultsDiv.innerHTML = '<p>No spelling errors found.</p>';
+        }
+      });
 
-        socket.on('scanStatus', (status) => {
-            if (status.isScanning) {
-                showLoading();
-            } else {
-                hideLoading();
-            }
-        });
+      socket.on('scanStatus', (status) => {
+        if (status.isScanning) {
+          showLoading();
+        } else {
+          hideLoading();
+        }
+      });
 
-        socket.on('connect', () => {
-            console.log('Connected to WebSocket server');
-            progressDiv.innerHTML += '<p>Connected to server.</p>';
-            // Request current scan status on connect
-            socket.emit('requestScanStatus');
-            loadHistory(); // Load history on connect
-        });
+      socket.on('connect', () => {
+        console.log('Connected to WebSocket server');
+        progressDiv.innerHTML += '<p>Connected to server.</p>';
+        // Request current scan status on connect
+        socket.emit('requestScanStatus');
+        loadHistory(); // Load history on connect
+      });
 
-        socket.on('disconnect', () => {
-            console.log('Disconnected from WebSocket server');
-            progressDiv.innerHTML += '<p style="color: red;">Disconnected from server. Please refresh.</p>';
-        });
+      socket.on('disconnect', () => {
+        console.log('Disconnected from WebSocket server');
+        progressDiv.innerHTML +=
+          '<p style="color: red;">Disconnected from server. Please refresh.</p>';
+      });
 
-        socket.on('connect_error', (error) => {
-            console.error('WebSocket connection error:', error);
-            progressDiv.innerHTML += `<p style="color: red;">WebSocket connection error: ${error.message}</p>`;
-        });
+      socket.on('connect_error', (error) => {
+        console.error('WebSocket connection error:', error);
+        progressDiv.innerHTML += `<p style="color: red;">WebSocket connection error: ${error.message}</p>`;
+      });
 
+      // Add event listener for popstate to handle browser back/forward
+      window.addEventListener('popstate', () => {
+        const params = new URLSearchParams(window.location.search);
+        const urlDomain = params.get('domain');
+        const urlLog = params.get('log');
+        if (urlDomain && urlLog) {
+          displayLogContent(urlDomain, urlLog);
+        } else {
+          // Clear results if no log specified
+          resultsDiv.innerHTML = '';
+        }
+      });
     </script>
-</body>
+  </body>
 </html>

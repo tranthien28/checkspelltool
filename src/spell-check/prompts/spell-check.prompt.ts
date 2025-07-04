@@ -25,6 +25,10 @@ export const getStrictDentalSpellCheckPrompt = (text: string): string => {
                "- Spelling mistakes **only** (do NOT check grammar, formatting, or capitalization)\n" +
                "- Detect **merged or compound words** (e.g., \"dentalimplant\")\n" +
                "- Detect **invalid plural forms** (e.g., \"implantss\", \"crownns\", \"teeths\")\n" +
+               "- Check for **inconsistent information** across the text regarding:\n" +
+               "  - Address\n" +
+               "  - Phone number\n" +
+               "  - Working hours\n" +
                "- Ignore domain names like \"example.com\" or \"patienthoney.com\"\n" +
                "- Treat the following dental terms as correct:\n" +
                "  ✅ " + dentalTerms.join(', ') + "\n\n" +

@@ -3,6 +3,13 @@
 /node_modules
 /build
 
+# Git
+.git
+.gitignore
+.gitattributes
+*.patch
+*.rej
+
 # Logs
 logs
 *.log
