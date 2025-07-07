@@ -187,10 +187,7 @@ export class SpellCheckService {
   async logErrors(slug: string, errors: SpellError[], checkedText: string, model: string, seoIssues: SeoIssue[], brokenLinks: string[], pageCount: number, permalink: string, prompt: string, checkTypes: string[]): Promise<void> {
     const urlObj = new URL(permalink);
     const baseDomain = urlObj.hostname.replace(/\./g, '_'); // Replace dots with underscores for valid folder name
-    
-    // Get existing scan count for this domain
-    const existingScanCount = await this.getExistingScanCount(baseDomain);
-    const domain = `${baseDomain}_${existingScanCount + 1}`; // Add scan index to domain name
+    const domain = baseDomain;
 
     let fileName = slug.replace(/[^a-zA-Z0-9\s-]/g, '') // Remove special characters
                          .replace(/\s+/g, '-') // Replace spaces with hyphens
@@ -211,7 +208,6 @@ export class SpellCheckService {
       brokenLinks: brokenLinks,
       pageCount: pageCount,
       checkTypes: checkTypes,
-      scanIndex: existingScanCount + 1 // Add scan index to log data
     };
 
     try {
@@ -222,28 +218,6 @@ export class SpellCheckService {
     } catch (error) {
       this.logger.error(`Error writing spell check log to file: ${error.message}`);
       this.eventsGateway.emitScanProgress(`Error writing spell check log to file: ${error.message}`);
-    }
-  }
-
-  // Add new method to get existing scan count
-  private async getExistingScanCount(baseDomain: string): Promise<number> {
-    try {
-      // Get all directories in logs folder
-      const dirs = await fs.readdir(this.logDirectory);
-      
-      // Filter directories that match the base domain pattern and get their scan numbers
-      const scanNumbers = dirs
-        .filter(dir => dir.startsWith(baseDomain + '_'))
-        .map(dir => {
-          const match = dir.match(new RegExp(`${baseDomain}_(\\d+)$`));
-          return match ? parseInt(match[1]) : 0;
-        });
-
-      // Return the highest scan number (or 0 if none found)
-      return scanNumbers.length > 0 ? Math.max(...scanNumbers) : 0;
-    } catch (error) {
-      this.logger.error(`Error getting existing scan count: ${error.message}`);
-      return 0;
     }
   }
 }

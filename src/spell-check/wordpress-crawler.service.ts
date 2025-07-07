@@ -5,6 +5,8 @@ import * as cheerio from 'cheerio';
 import { EventsGateway } from '../events/events.gateway';
 import { SeoMeta } from './dto/spell-check-response.dto';
 import * as dotenv from 'dotenv';
+import { promises as fs } from 'fs';
+import { join } from 'path';
 
 dotenv.config();
 
@@ -12,11 +14,21 @@ dotenv.config();
 export class WordPressCrawlerService {
   private readonly logger = new Logger(WordPressCrawlerService.name);
   private readonly wordpressApiEndpoint = process.env.WORDPRESS_API_ENDPOINT || '/wp-json/site-export/v1/full';
+  private readonly logDirectory = join(process.cwd(), 'logs');
 
   constructor(
     private readonly httpService: HttpService,
     private readonly eventsGateway: EventsGateway,
   ) { }
+
+  private async clearLogDirectory(directory: string): Promise<void> {
+    try {
+      await fs.rm(directory, { recursive: true, force: true });
+      this.logger.log(`Successfully cleared log directory: ${directory}`);
+    } catch (error) {
+      this.logger.error(`Error clearing log directory ${directory}: ${error.message}`);
+    }
+  }
 
   extractLinksFromHtml(htmlContent: string): string[] {
     const $ = cheerio.load(htmlContent);
@@ -65,6 +77,11 @@ export class WordPressCrawlerService {
   }
 
   async crawlAndExtractContent(baseUrl: string): Promise<{ url: string; textContent: string; seoMeta: SeoMeta; allLinks: string[]; permalink?: string; title?: string; slug?: string }[]> {
+    const urlObj = new URL(baseUrl);
+    const baseDomain = urlObj.hostname.replace(/\./g, '_');
+    const siteLogDirectory = join(this.logDirectory, baseDomain);
+    await this.clearLogDirectory(siteLogDirectory);
+
     const extractedContents: { url: string; textContent: string; seoMeta: SeoMeta; allLinks: string[]; permalink?: string; title?: string; slug?: string }[] = [];
     const newApiUrl = `${baseUrl}${this.wordpressApiEndpoint}`;
     this.logger.log(`Fetching content from custom API: ${newApiUrl}`);

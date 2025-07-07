@@ -1,12 +1,18 @@
-import { WebSocketGateway, WebSocketServer, SubscribeMessage, MessageBody, OnGatewayConnection } from '@nestjs/websockets';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  MessageBody,
+  OnGatewayConnection,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { SpellCheckService } from '../spell-check/spell-check.service';
 
 @WebSocketGateway({
   cors: {
-    origin: '*'
-  }
+    origin: '*',
+  },
 })
 export class EventsGateway implements OnGatewayConnection {
   @WebSocketServer()
@@ -21,7 +27,9 @@ export class EventsGateway implements OnGatewayConnection {
   handleConnection(client: Socket, ...args: any[]) {
     this.logger.log(`Client connected: ${client.id}`);
     // Send current scanning status to the newly connected client
-    client.emit('scanStatus', { isScanning: this.spellCheckService.getIsScanning() });
+    client.emit('scanStatus', {
+      isScanning: this.spellCheckService.getIsScanning(),
+    });
   }
 
   emitScanProgress(message: string) {
@@ -44,6 +52,8 @@ export class EventsGateway implements OnGatewayConnection {
 
   @SubscribeMessage('requestScanStatus')
   handleRequestScanStatus(client: Socket): void {
-    client.emit('scanStatus', { isScanning: this.spellCheckService.getIsScanning() });
+    client.emit('scanStatus', {
+      isScanning: this.spellCheckService.getIsScanning(),
+    });
   }
 }
