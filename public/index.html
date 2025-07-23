@@ -40,6 +40,26 @@
         padding: 5px;
         border-radius: 4px;
       }
+      .delete-site-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 2px 8px;
+        margin-left: 10px;
+        font-size: 0.8em;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .delete-site-btn:hover {
+        background-color: #c82333;
+      }
+      .domain-header-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+      }
       .sidebar ul li a:hover,
       .sidebar ul li a.active {
         background-color: #0056b3;
@@ -252,44 +272,42 @@
               const domainGroup = document.createElement('div');
               domainGroup.className = 'domain-group';
 
-              const domainHeader = document.createElement('h4');
-              domainHeader.addEventListener('click', () => {
+              const domainHeader = document.createElement('div');
+              domainHeader.className = 'domain-header-container';
+              
+              const domainTitle = document.createElement('h4');
+              domainTitle.style.margin = '0';
+              domainTitle.style.cursor = 'pointer';
+              domainTitle.addEventListener('click', () => {
                 domainGroup.classList.toggle('expanded');
               });
 
               const deleteButton = document.createElement('button');
+              deleteButton.className = 'delete-site-btn';
               deleteButton.textContent = 'Xóa';
-              deleteButton.style.marginLeft = '10px';
-              deleteButton.style.backgroundColor = '#dc3545';
-              deleteButton.style.padding = '5px 10px';
-              deleteButton.style.fontSize = '0.8em';
+              deleteButton.title = `Xóa toàn bộ lịch sử của ${domain.replace(/_/g, '.')}`;
               deleteButton.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                if (
-                  confirm(
-                    `Bạn có chắc chắn muốn xóa lịch sử quét của ${domain.replace(/_/g, '.')} không?`,
-                  )
-                ) {
+                if (confirm(`Bạn có chắc chắn muốn xóa toàn bộ lịch sử quét của ${domain.replace(/_/g, '.')} không?`)) {
                   try {
                     const response = await fetch(`/logs/domain/${domain}`, {
                       method: 'DELETE',
                     });
                     if (response.ok) {
-                      alert(
-                        `Đã xóa lịch sử quét của ${domain.replace(/_/g, '.')}.`,
-                      );
+                      alert(`Đã xóa toàn bộ lịch sử quét của ${domain.replace(/_/g, '.')}.`);
                       loadHistory();
                       resultsDiv.innerHTML = '';
                     } else {
-                      alert('Có lỗi xảy ra khi xóa lịch sử quét.');
+                      throw new Error('Failed to delete domain history');
                     }
                   } catch (error) {
                     console.error('Error deleting domain history:', error);
-                    alert('Có lỗi xảy ra khi xóa lịch sử quét.');
+                    alert('Có lỗi xảy ra khi xóa lịch sử quét. Vui lòng thử lại.');
                   }
                 }
               });
 
+              domainHeader.appendChild(domainTitle);
               domainHeader.appendChild(deleteButton);
               domainGroup.appendChild(domainHeader);
 
@@ -325,7 +343,7 @@
                 .replace(/_/g, '');
               const scanLabel = scanNumber ? ` (Lần ${scanNumber})` : '';
 
-              domainHeader.textContent = `${displayDomain}${scanLabel} (${totalPageCount} trang)${modelInfo}`;
+              domainTitle.textContent = `${displayDomain}${scanLabel} (${totalPageCount} trang)${modelInfo}`;
 
               // Sort urls by displayPath alphabetically
               urls.sort((a, b) => a.displayPath.localeCompare(b.displayPath));
