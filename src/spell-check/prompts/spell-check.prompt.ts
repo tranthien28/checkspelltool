@@ -26,9 +26,27 @@ export const getStrictDentalSpellCheckPrompt = (text: string): string => {
                "- Detect **merged or compound words** (e.g., \"dentalimplant\")\n" +
                "- Detect **invalid plural forms** (e.g., \"implantss\", \"crownns\", \"teeths\")\n" +
                "- Check for **inconsistent information** across the text regarding:\n" +
-               "  - Address\n" +
-               "  - Phone number\n" +
-               "  - Working hours\n" +
+               "  - **Address**: Must be consistent in format and content. Check for:\n" +
+               "    - Different street numbers or names in the same address\n" +
+               "    - Inconsistent ward/district/city names\n" +
+               "    - Different postal codes for the same location\n" +
+               "  - **Phone numbers**: Must follow standard format and be consistent. Check for:\n" +
+               "    - Different phone numbers for the same location/contact\n" +
+               "    - Inconsistent country/area codes (e.g., +84 vs 84 vs 0 for Vietnam)\n" +
+               "    - Invalid phone number formats\n" +
+               "  - **Working hours**: Must be logical and consistent. Check for:\n" +
+               "    - Overlapping or impossible time ranges (e.g., open at 14:00 but close at 12:00)\n" +
+               "    - Inconsistent operating days\n" +
+               "    - Different working hours for the same location on the same day\n" +
+               "  - **Pricing**: If mentioned, must be consistent. Check for:\n" +
+               "    - Different prices for the same service\n" +
+               "    - Inconsistent currency formats\n" +
+               "- **Contact Information**: Must be consistent across all pages. Check for:\n" +
+               "  - Different email addresses for the same contact\n" +
+               "  - Inconsistent social media handles\n" +
+               "- **Business Information**: Must be consistent. Check for:\n" +
+               "  - Different business names\n" +
+               "  - Inconsistent service descriptions\n" +
                "- Ignore domain names like \"example.com\" or \"patienthoney.com\"\n" +
                "- Treat the following dental terms as correct:\n" +
                "  ✅ " + dentalTerms.join(', ') + "\n\n" +
@@ -40,7 +58,9 @@ export const getStrictDentalSpellCheckPrompt = (text: string): string => {
                "- \"originalSentence\": full sentence where the error appears\n" +
                "- \"correctedSentence\": the sentence after correcting the spelling\n" +
                "- \"offset\": character index where the error starts (in the full input)\n" +
-               "- \"message\": short explanation in **Vietnamese** why it’s incorrect\n\n" +
+               "- \"message\": short explanation in **Vietnamese** why it's incorrect\n" +
+               "- \"inconsistencyType\": (optional) type of inconsistency if applicable (e.g., \"address\", \"phone\", \"hours\", \"pricing\", \"contact\")\n" +
+               "- \"severity\": (optional) severity level (\"low\", \"medium\", \"high\") based on impact\n\n" +
                "--- \n\n" +
                "### ✅ Example output (STRICTLY FOLLOW THIS FORMAT):\n\n" +
                jsonStart + "\n" +
